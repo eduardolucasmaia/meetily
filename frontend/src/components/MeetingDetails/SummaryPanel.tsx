@@ -7,6 +7,7 @@ import { EmptyStateSummary } from '@/components/EmptyStateSummary';
 import { ModelConfig } from '@/components/ModelSettingsModal';
 import { SummaryGeneratorButtonGroup } from './SummaryGeneratorButtonGroup';
 import { SummaryUpdaterButtonGroup } from './SummaryUpdaterButtonGroup';
+import { ObsidianExportButton } from './ObsidianExportButton';
 import Analytics from '@/lib/analytics';
 import { useEffect, useRef, useState, RefObject } from 'react';
 import { toast } from 'sonner';
@@ -60,6 +61,9 @@ interface SummaryPanelProps {
   onTemplateSelect: (templateId: string, templateName: string) => void;
   isModelConfigLoading?: boolean;
   onOpenModelSettings?: (openFn: () => void) => void;
+  obsidianExportEnabled?: boolean;
+  isObsidianExporting?: boolean;
+  onExportToObsidian?: () => Promise<void>;
 }
 
 export function SummaryPanel({
@@ -95,7 +99,10 @@ export function SummaryPanel({
   selectedTemplate,
   onTemplateSelect,
   isModelConfigLoading = false,
-  onOpenModelSettings
+  onOpenModelSettings,
+  obsidianExportEnabled = false,
+  isObsidianExporting = false,
+  onExportToObsidian,
 }: SummaryPanelProps) {
   const [summaryLang, setSummaryLang] = useState<string | null>(null);
   const [summaryLangStorage, setSummaryLangStorage] = useState<SummaryLanguageStorage>('metadata');
@@ -252,6 +259,14 @@ export function SummaryPanel({
     </Popover>
   );
 
+  const obsidianExportButton = onExportToObsidian ? (
+    <ObsidianExportButton
+      isEnabled={obsidianExportEnabled}
+      isExporting={isObsidianExporting}
+      onExport={onExportToObsidian}
+    />
+  ) : null;
+
   return (
     <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden">
       {/* Title area */}
@@ -289,7 +304,7 @@ export function SummaryPanel({
             </div>
 
             {/* Right-aligned: Summary Updater Button Group */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center gap-2">
               <SummaryUpdaterButtonGroup
                 isSaving={isSaving}
                 isDirty={isTitleDirty || (summaryRef.current?.isDirty || false)}
@@ -302,6 +317,7 @@ export function SummaryPanel({
                 onOpenFolder={onOpenFolder}
                 hasSummary={!!aiSummary}
               />
+              {obsidianExportButton}
             </div>
           </div>
         )}
@@ -310,7 +326,7 @@ export function SummaryPanel({
       {isSummaryLoading ? (
         <div className="flex flex-col h-full">
           {/* Show button group during generation */}
-          <div className="flex items-center justify-center pt-8 pb-4">
+          <div className="flex items-center justify-center pt-8 pb-4 gap-2">
             <SummaryGeneratorButtonGroup
               modelConfig={modelConfig}
               setModelConfig={setModelConfig}
@@ -326,6 +342,7 @@ export function SummaryPanel({
               isModelConfigLoading={isModelConfigLoading}
               onOpenModelSettings={onOpenModelSettings}
             />
+            {obsidianExportButton}
           </div>
           {/* Loading spinner */}
           <div className="flex items-center justify-center flex-1">
@@ -356,6 +373,7 @@ export function SummaryPanel({
               onOpenModelSettings={onOpenModelSettings}
               languageSlot={transcripts.length > 0 ? languageSlot : undefined}
             />
+            {obsidianExportButton}
           </div>
           {/* Empty state message */}
           <EmptyStateSummary

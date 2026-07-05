@@ -22,10 +22,16 @@ export interface BetaFeatures {
    * @since v0.3.0
    */
   importAndRetranscribe: boolean;
+  /**
+   * Export meeting notes to Obsidian vault using AI-generated markdown files
+   * @since v0.3.0
+   */
+  obsidianExport: boolean;
 }
 
 export const DEFAULT_BETA_FEATURES: BetaFeatures = {
   importAndRetranscribe: true, // Default: enabled
+  obsidianExport: false,
 };
 
 
@@ -34,6 +40,7 @@ export const DEFAULT_BETA_FEATURES: BetaFeatures = {
  */
 export const BETA_FEATURE_NAMES: Record<keyof BetaFeatures, string> = {
   importAndRetranscribe: 'Import Audio & Retranscribe',
+  obsidianExport: 'Export to Obsidian',
 };
 
 /**
@@ -41,6 +48,7 @@ export const BETA_FEATURE_NAMES: Record<keyof BetaFeatures, string> = {
  */
 export const BETA_FEATURE_DESCRIPTIONS: Record<keyof BetaFeatures, string> = {
   importAndRetranscribe: 'Import audio files to transcribe or retranscribe existing meetings with different language settings.',
+  obsidianExport: 'Generate Obsidian-ready markdown notes from meetings and export them to your vault folder.',
 };
 
 /**

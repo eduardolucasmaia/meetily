@@ -42,6 +42,7 @@ pub mod config;
 pub mod console_utils;
 pub mod database;
 pub mod notifications;
+pub mod obsidian_export;
 pub mod ollama;
 pub mod onboarding;
 pub mod openai;
@@ -650,6 +651,9 @@ pub fn run() {
             api::api_save_meeting_title,
             api::api_save_transcript,
             api::open_meeting_folder,
+            obsidian_export::commands::select_obsidian_vault_folder,
+            obsidian_export::commands::export_meeting_to_obsidian_command,
+            obsidian_export::commands::open_folder_path,
             api::test_backend_connection,
             api::debug_backend_connection,
             api::open_external_url,

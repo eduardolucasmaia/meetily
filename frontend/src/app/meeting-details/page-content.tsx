@@ -16,6 +16,7 @@ import { useSummaryGeneration } from '@/hooks/meeting-details/useSummaryGenerati
 import { useTemplates } from '@/hooks/meeting-details/useTemplates';
 import { useCopyOperations } from '@/hooks/meeting-details/useCopyOperations';
 import { useMeetingOperations } from '@/hooks/meeting-details/useMeetingOperations';
+import { useObsidianExport } from '@/hooks/meeting-details/useObsidianExport';
 import { useConfig } from '@/contexts/ConfigContext';
 
 export default function PageContent({
@@ -134,6 +135,11 @@ export default function PageContent({
     meeting,
   });
 
+  const obsidianExport = useObsidianExport({
+    meetingId: meeting.id,
+    hasTranscripts: meetingData.transcripts.length > 0,
+  });
+
   // Track page view
   useEffect(() => {
     Analytics.trackPageView('meeting_details');
@@ -226,6 +232,9 @@ export default function PageContent({
           onTemplateSelect={templates.handleTemplateSelection}
           isModelConfigLoading={false}
           onOpenModelSettings={handleRegisterModalOpen}
+          obsidianExportEnabled={obsidianExport.isEnabled}
+          isObsidianExporting={obsidianExport.isExporting}
+          onExportToObsidian={obsidianExport.exportToObsidian}
         />
       </div>
     </motion.div>
