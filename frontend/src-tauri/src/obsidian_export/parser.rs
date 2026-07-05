@@ -59,10 +59,11 @@ mod tests {
 
     #[test]
     fn parse_valid_json() {
-        let raw = r#"{"files":[{"filename":"Note.md","content":"# Hello"}]}"#;
+        let raw = r##"{"files":[{"filename":"Note.md","content":"# Hello"}]}"##;
         let files = parse_obsidian_response(raw).unwrap();
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].filename, "Note.md");
+        assert_eq!(files[0].content, "# Hello");
     }
 
     #[test]

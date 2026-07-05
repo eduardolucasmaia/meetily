@@ -10,7 +10,6 @@ use crate::database::repositories::setting::SettingsRepository;
 use crate::database::repositories::summary::SummaryProcessesRepository;
 use crate::database::repositories::meeting::MeetingsRepository;
 use crate::summary::llm_client::{generate_summary, LLMProvider};
-use crate::state::AppState;
 
 use super::parser::{parse_obsidian_response, ObsidianExportResult};
 use super::prompt::{
