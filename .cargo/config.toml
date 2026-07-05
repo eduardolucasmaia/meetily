@@ -1,0 +1,5 @@
+# Windows: whisper-rs-sys bindgen needs MSVC + Windows SDK headers.
+# Without these, bindgen falls back to Linux stubs and whisper-rs fails to compile.
+[env]
+LIBCLANG_PATH = { value = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Tools\\Llvm\\x64\\bin", force = true }
+BINDGEN_EXTRA_CLANG_ARGS = { value = "-target x86_64-pc-windows-msvc -I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt\" -I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um\" -I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared\" -I\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Tools\\MSVC\\14.44.35207\\include\" -I\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\VC\\Tools\\Llvm\\x64\\lib\\clang\\19\\include\"", force = true }
