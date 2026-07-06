@@ -10,6 +10,8 @@ interface ObsidianExportResult {
   fileCount: number;
 }
 
+export type ObsidianExportSource = 'manual' | 'auto';
+
 interface UseObsidianExportProps {
   meetingId: string;
   hasTranscripts: boolean;
@@ -21,30 +23,40 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
 
   const isEnabled = betaFeatures.obsidianExport && hasTranscripts;
 
-  const exportToObsidian = useCallback(async () => {
+  const exportToObsidian = useCallback(async (source: ObsidianExportSource = 'manual') => {
     if (!betaFeatures.obsidianExport) {
-      toast.error('Beta feature disabled', {
-        description: 'Enable "Export to Obsidian" in Settings > Beta.',
-      });
+      if (source === 'manual') {
+        toast.error('Beta feature disabled', {
+          description: 'Enable "Export to Obsidian" in Settings > Beta.',
+        });
+      }
       return;
     }
 
     if (!hasTranscripts) {
-      toast.error('No transcript available to export');
+      if (source === 'manual') {
+        toast.error('No transcript available to export');
+      }
       return;
     }
 
     const settings = loadObsidianExportSettings();
     if (!settings.vaultPath.trim()) {
-      toast.error('Obsidian vault path not configured', {
-        description: 'Set your vault folder in Settings > Beta > Export to Obsidian.',
-      });
+      if (source === 'manual') {
+        toast.error('Obsidian vault path not configured', {
+          description: 'Set your vault folder in Settings > Beta > Export to Obsidian.',
+        });
+      } else {
+        console.warn('[ObsidianExport] Auto-export skipped: vault path not configured');
+      }
       return;
     }
 
     setIsExporting(true);
     try {
-      await Analytics.trackButtonClick('export_to_obsidian', 'meeting_details');
+      const analyticsEvent =
+        source === 'auto' ? 'export_to_obsidian_auto' : 'export_to_obsidian';
+      await Analytics.trackButtonClick(analyticsEvent, 'meeting_details');
 
       const result = await invoke<ObsidianExportResult>('export_meeting_to_obsidian_command', {
         meetingId,
@@ -52,18 +64,33 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
         userPrompt: settings.prompt,
       });
 
-      toast.success('Exported to Obsidian', {
-        description: `${result.fileCount} file(s) saved`,
-        action: {
-          label: 'Open folder',
-          onClick: () => {
-            invoke('open_folder_path', { folderPath: result.exportedPath }).catch((err) => {
-              console.error('Failed to open exported folder:', err);
-              toast.error('Failed to open folder');
-            });
+      if (source === 'auto') {
+        toast.success('Obsidian notes exported automatically', {
+          description: `${result.fileCount} file(s) saved to your vault`,
+          action: {
+            label: 'Open folder',
+            onClick: () => {
+              invoke('open_folder_path', { folderPath: result.exportedPath }).catch((err) => {
+                console.error('Failed to open exported folder:', err);
+                toast.error('Failed to open folder');
+              });
+            },
           },
-        },
-      });
+        });
+      } else {
+        toast.success('Exported to Obsidian', {
+          description: `${result.fileCount} file(s) saved`,
+          action: {
+            label: 'Open folder',
+            onClick: () => {
+              invoke('open_folder_path', { folderPath: result.exportedPath }).catch((err) => {
+                console.error('Failed to open exported folder:', err);
+                toast.error('Failed to open folder');
+              });
+            },
+          },
+        });
+      }
     } catch (error) {
       console.error('Obsidian export failed:', error);
       toast.error('Failed to export to Obsidian', {

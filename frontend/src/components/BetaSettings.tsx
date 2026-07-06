@@ -23,9 +23,11 @@ import {
 function ObsidianExportConfig({
   settings,
   onChange,
+  isAutoSummary,
 }: {
   settings: ObsidianExportSettings
   onChange: (settings: ObsidianExportSettings) => void
+  isAutoSummary: boolean
 }) {
   const handleBrowse = useCallback(async () => {
     try {
@@ -41,6 +43,30 @@ function ObsidianExportConfig({
 
   return (
     <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <label htmlFor="obsidian-auto-export" className="block text-sm font-medium text-gray-700">
+            Auto-export after summary
+          </label>
+          <p className="mt-1 text-xs text-gray-500">
+            Automatically export to your vault after the post-recording summary finishes.
+          </p>
+          {!isAutoSummary && (
+            <p className="mt-1 text-xs text-amber-700">
+              Enable Auto Summary in Summary settings first.
+            </p>
+          )}
+        </div>
+        <Switch
+          id="obsidian-auto-export"
+          checked={settings.autoExportAfterSummary}
+          disabled={!isAutoSummary}
+          onCheckedChange={(checked) =>
+            onChange({ ...settings, autoExportAfterSummary: checked })
+          }
+        />
+      </div>
+
       <div>
         <label htmlFor="obsidian-prompt" className="block text-sm font-medium text-gray-700 mb-1">
           AI Prompt
@@ -81,10 +107,20 @@ function ObsidianExportConfig({
 }
 
 export function BetaSettings() {
-  const { betaFeatures, toggleBetaFeature } = useConfig();
+  const { betaFeatures, toggleBetaFeature, isAutoSummary } = useConfig();
   const [obsidianSettings, setObsidianSettings] = useState<ObsidianExportSettings>(() =>
     loadObsidianExportSettings()
   );
+
+  useEffect(() => {
+    if (!isAutoSummary) {
+      setObsidianSettings((prev) =>
+        prev.autoExportAfterSummary
+          ? { ...prev, autoExportAfterSummary: false }
+          : prev
+      );
+    }
+  }, [isAutoSummary]);
 
   useEffect(() => {
     saveObsidianExportSettings(obsidianSettings);
@@ -137,6 +173,7 @@ export function BetaSettings() {
             <ObsidianExportConfig
               settings={obsidianSettings}
               onChange={setObsidianSettings}
+              isAutoSummary={isAutoSummary}
             />
           )}
         </div>

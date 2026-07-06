@@ -18,6 +18,7 @@ import { useCopyOperations } from '@/hooks/meeting-details/useCopyOperations';
 import { useMeetingOperations } from '@/hooks/meeting-details/useMeetingOperations';
 import { useObsidianExport } from '@/hooks/meeting-details/useObsidianExport';
 import { useConfig } from '@/contexts/ConfigContext';
+import { loadObsidianExportSettings } from '@/lib/obsidian-export-settings';
 
 export default function PageContent({
   meeting,
@@ -66,7 +67,7 @@ export default function PageContent({
   const { serverAddress } = useSidebar();
 
   // Get model config from ConfigContext
-  const { modelConfig, setModelConfig } = useConfig();
+  const { modelConfig, setModelConfig, isAutoSummary, betaFeatures } = useConfig();
 
   // Custom hooks
   const meetingData = useMeetingData({ meeting, summaryData, onMeetingUpdated });
@@ -152,9 +153,20 @@ export default function PageContent({
     const autoGenerate = async () => {
       if (shouldAutoGenerate && meetingData.transcripts.length > 0 && !cancelled) {
         console.log(`🤖 Auto-generating summary with ${modelConfig.provider}/${modelConfig.model}...`);
-        await summaryGeneration.handleGenerateSummary('');
+        const result = await summaryGeneration.handleGenerateSummary('');
 
-        // Notify parent that auto-generation is complete (only if not cancelled)
+        if (!cancelled && result.success) {
+          const settings = loadObsidianExportSettings();
+          if (
+            isAutoSummary &&
+            betaFeatures.obsidianExport &&
+            settings.autoExportAfterSummary &&
+            settings.vaultPath.trim()
+          ) {
+            await obsidianExport.exportToObsidian('auto');
+          }
+        }
+
         if (onAutoGenerateComplete && !cancelled) {
           onAutoGenerateComplete();
         }

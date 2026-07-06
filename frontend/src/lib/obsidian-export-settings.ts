@@ -1,6 +1,7 @@
 export interface ObsidianExportSettings {
   prompt: string;
   vaultPath: string;
+  autoExportAfterSummary: boolean;
 }
 
 export const DEFAULT_OBSIDIAN_EXPORT_PROMPT = `Create Obsidian-ready markdown notes from this meeting.
@@ -17,6 +18,7 @@ Guidelines:
 export const DEFAULT_OBSIDIAN_EXPORT_SETTINGS: ObsidianExportSettings = {
   prompt: DEFAULT_OBSIDIAN_EXPORT_PROMPT,
   vaultPath: '',
+  autoExportAfterSummary: false,
 };
 
 const STORAGE_KEY = 'obsidianExportSettings';
