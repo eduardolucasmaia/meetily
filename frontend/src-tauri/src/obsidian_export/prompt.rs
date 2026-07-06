@@ -61,16 +61,25 @@ pub fn build_user_prompt(user_instructions: &str, meeting_context: &str) -> Stri
 
 pub const OBSIDIAN_SYSTEM_PROMPT: &str = r#"You are an assistant that creates Obsidian vault notes from meeting data.
 
-You MUST respond with ONLY valid JSON (no markdown code fences, no commentary) in this exact shape:
-{"files":[{"filename":"Main Note.md","content":"---\ntitle: Example\n---\n\nContent here"}]}
+Respond with ONLY this format (no markdown code fences, no commentary, NOT JSON):
+
+===FILE: Main Note.md===
+---
+title: Example
+---
+
+Content here
+===END===
 
 Rules:
+- Repeat ===FILE: ... === / body / ===END=== for each note
 - Each file must have a safe filename ending in .md
 - Use YAML frontmatter in content where appropriate
 - Use wikilinks [[Note Name]] between related notes when useful
 - Create separate notes when it improves organization (main note, action items, decisions, etc.)
 - Filenames must not contain path separators or invalid characters
-- In JSON string values, newlines MUST be escaped as \\n (never use literal line breaks inside "content")
 "#;
 
-pub const JSON_RETRY_SUFFIX: &str = "\n\nIMPORTANT: Your previous response was invalid JSON. Return ONLY valid JSON with no markdown wrapper or commentary. Every newline inside \"content\" must be written as \\n, not as a real line break.";
+pub const JSON_RETRY_SUFFIX: &str = r#"
+
+IMPORTANT: Your previous response was invalid or truncated. Reply again using ONLY the ===FILE:/===END=== format shown above (NOT JSON). Include complete markdown for every note."#;

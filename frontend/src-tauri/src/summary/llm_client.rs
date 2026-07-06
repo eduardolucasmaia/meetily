@@ -142,6 +142,7 @@ pub async fn generate_summary(
             model_name,
             system_prompt,
             user_prompt,
+            max_tokens.map(|t| t as i32),
             cancellation_token,
         )
         .await
@@ -222,7 +223,7 @@ pub async fn generate_summary(
         let (max_tokens_val, temperature_val, top_p_val) = if provider == &LLMProvider::CustomOpenAI {
             (max_tokens, temperature, top_p)
         } else {
-            (None, None, None)
+            (max_tokens, None, None)
         };
 
         serde_json::json!(ChatRequest {
@@ -245,7 +246,7 @@ pub async fn generate_summary(
         serde_json::json!(ClaudeRequest {
             system: system_prompt.to_string(),
             model: model_name.to_string(),
-            max_tokens: 2048,
+            max_tokens: max_tokens.unwrap_or(8192),
             messages: vec![ChatMessage {
                 role: "user".to_string(),
                 content: user_prompt.to_string(),

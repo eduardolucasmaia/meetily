@@ -11,11 +11,14 @@ use crate::database::repositories::summary::SummaryProcessesRepository;
 use crate::database::repositories::meeting::MeetingsRepository;
 use crate::summary::llm_client::{generate_summary, LLMProvider};
 
-use super::parser::{parse_obsidian_response, ObsidianExportResult};
+use super::parser::{parse_delimiter_format, parse_obsidian_response, ObsidianExportResult};
 use super::prompt::{
     build_meeting_context, build_user_prompt, JSON_RETRY_SUFFIX, OBSIDIAN_SYSTEM_PROMPT,
 };
 use super::writer::{cleanup_temp_dir, meeting_subfolder_name, move_temp_to_vault, write_files_to_temp};
+
+/// Higher token budget for multi-file Obsidian exports.
+const OBSIDIAN_EXPORT_MAX_TOKENS: u32 = 8192;
 
 struct LlmConfig {
     provider: LLMProvider,
@@ -65,15 +68,17 @@ pub async fn export_meeting_to_obsidian(
     let files = match parse_obsidian_response(&raw) {
         Ok(files) => files,
         Err(first_err) => {
-            info!("Obsidian export JSON parse failed, retrying once: {}", first_err);
+            info!("Obsidian export parse failed, retrying with delimiter format: {}", first_err);
             let retry_prompt = format!("{}{}", user_prompt_full, JSON_RETRY_SUFFIX);
             let retry_raw = call_llm(&client, &llm, &retry_prompt, None).await?;
-            parse_obsidian_response(&retry_raw).map_err(|retry_err| {
-                format!(
-                    "AI returned invalid export format. First error: {}. Retry error: {}",
-                    first_err, retry_err
-                )
-            })?
+            parse_obsidian_response(&retry_raw)
+                .or_else(|_| parse_delimiter_format(&retry_raw))
+                .map_err(|retry_err| {
+                    format!(
+                        "AI returned invalid export format. First error: {}. Retry error: {}",
+                        first_err, retry_err
+                    )
+                })?
         }
     };
 
@@ -215,6 +220,11 @@ async fn call_llm(
     user_prompt: &str,
     cancellation_token: Option<&tokio_util::sync::CancellationToken>,
 ) -> Result<String, String> {
+    let max_tokens = llm
+        .max_tokens
+        .unwrap_or(OBSIDIAN_EXPORT_MAX_TOKENS)
+        .max(OBSIDIAN_EXPORT_MAX_TOKENS);
+
     generate_summary(
         client,
         &llm.provider,
@@ -224,7 +234,7 @@ async fn call_llm(
         user_prompt,
         llm.ollama_endpoint.as_deref(),
         llm.custom_openai_endpoint.as_deref(),
-        llm.max_tokens,
+        Some(max_tokens),
         llm.temperature,
         llm.top_p,
         llm.app_data_dir.as_ref(),
