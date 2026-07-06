@@ -46,7 +46,7 @@ interface SummaryPanelProps {
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig | ((prev: ModelConfig) => ModelConfig)) => void;
   onSaveModelConfig: (config?: ModelConfig) => Promise<void>;
-  onGenerateSummary: (customPrompt: string) => Promise<void>;
+  onGenerateSummary: (customPrompt: string) => Promise<void | { success: boolean }>;
   onStopGeneration: () => void;
   customPrompt: string;
   summaryResponse: SummaryResponse | null;
