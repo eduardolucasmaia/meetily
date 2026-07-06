@@ -6,6 +6,7 @@ const resolveFromTiptapPm = (pkg) =>
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // Disabled for BlockNote compatibility
+  transpilePackages: ['lucide-react'],
   output: 'export',
   images: {
     unoptimized: true,
@@ -15,8 +16,13 @@ const nextConfig = {
   assetPrefix: '/',
 
   // Add webpack configuration for Tauri
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     if (!isServer) {
+      // First dev compile can take 30–60s; avoid ChunkLoadError in Tauri webview.
+      if (dev) {
+        config.output.chunkLoadTimeout = 300000;
+      }
+
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
