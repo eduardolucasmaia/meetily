@@ -70,6 +70,7 @@ Rules:
 - Use wikilinks [[Note Name]] between related notes when useful
 - Create separate notes when it improves organization (main note, action items, decisions, etc.)
 - Filenames must not contain path separators or invalid characters
+- In JSON string values, newlines MUST be escaped as \\n (never use literal line breaks inside "content")
 "#;
 
-pub const JSON_RETRY_SUFFIX: &str = "\n\nIMPORTANT: Your previous response was invalid JSON. Return ONLY valid JSON with no markdown wrapper or commentary.";
+pub const JSON_RETRY_SUFFIX: &str = "\n\nIMPORTANT: Your previous response was invalid JSON. Return ONLY valid JSON with no markdown wrapper or commentary. Every newline inside \"content\" must be written as \\n, not as a real line break.";

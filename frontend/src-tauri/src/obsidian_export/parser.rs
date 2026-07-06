@@ -23,6 +23,21 @@ pub fn parse_obsidian_response(raw: &str) -> Result<Vec<ObsidianFile>, String> {
     let trimmed = raw.trim();
     let json_str = strip_code_fences(trimmed);
 
+    parse_json_payload(json_str).or_else(|first_err| {
+        let repaired = repair_json_string_literals(json_str);
+        if repaired == json_str {
+            return Err(first_err);
+        }
+        parse_json_payload(&repaired).map_err(|repair_err| {
+            format!(
+                "{} (repair attempt: {})",
+                first_err, repair_err
+            )
+        })
+    })
+}
+
+fn parse_json_payload(json_str: &str) -> Result<Vec<ObsidianFile>, String> {
     let payload: ObsidianExportPayload = serde_json::from_str(json_str).map_err(|e| {
         format!(
             "Failed to parse Obsidian export JSON: {}. Response preview: {}",
@@ -36,6 +51,49 @@ pub fn parse_obsidian_response(raw: &str) -> Result<Vec<ObsidianFile>, String> {
     }
 
     Ok(payload.files)
+}
+
+/// Escape raw control characters inside JSON string literals (common LLM mistake).
+fn repair_json_string_literals(json: &str) -> String {
+    let mut out = String::with_capacity(json.len() + json.len() / 8);
+    let mut in_string = false;
+    let mut escape_next = false;
+
+    for ch in json.chars() {
+        if escape_next {
+            out.push(ch);
+            escape_next = false;
+            continue;
+        }
+
+        if ch == '\\' && in_string {
+            out.push(ch);
+            escape_next = true;
+            continue;
+        }
+
+        if ch == '"' {
+            in_string = !in_string;
+            out.push(ch);
+            continue;
+        }
+
+        if in_string {
+            match ch {
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if c.is_control() => {
+                    out.push_str(&format!("\\u{:04x}", c as u32));
+                }
+                c => out.push(c),
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+
+    out
 }
 
 fn strip_code_fences(input: &str) -> &str {
@@ -71,5 +129,18 @@ mod tests {
         let raw = "```json\n{\"files\":[{\"filename\":\"A.md\",\"content\":\"x\"}]}\n```";
         let files = parse_obsidian_response(raw).unwrap();
         assert_eq!(files.len(), 1);
+    }
+
+    #[test]
+    fn parse_json_with_literal_newlines_in_content() {
+        let raw = r##"{"files":[{"filename":"Note.md","content":"---
+title: Test
+date: 2026-07-06
+
+Body"}]}"##;
+        let files = parse_obsidian_response(raw).unwrap();
+        assert_eq!(files.len(), 1);
+        assert!(files[0].content.contains("title: Test"));
+        assert!(files[0].content.contains('\n'));
     }
 }
