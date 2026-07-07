@@ -61,6 +61,8 @@ pub fn build_user_prompt(user_instructions: &str, meeting_context: &str) -> Stri
 
 pub const OBSIDIAN_SYSTEM_PROMPT: &str = r#"You are an assistant that creates Obsidian vault notes from meeting data.
 
+All exported note CONTENT must be written in Brazilian Portuguese.
+
 Respond with ONLY this format (no markdown code fences, no commentary, NOT JSON):
 
 ===FILE: Main Note.md===
@@ -74,9 +76,11 @@ Content here
 Rules:
 - Repeat ===FILE: ... === / body / ===END=== for each note
 - Each file must have a safe filename ending in .md
-- Use YAML frontmatter in content where appropriate
-- Use wikilinks [[Note Name]] between related notes when useful
-- Create separate notes when it improves organization (main note, action items, decisions, etc.)
+- Use YAML frontmatter in every note (type, date, tags, topics, people, projects)
+- Use wikilinks [[Note Name]] extensively for topics, people, projects, and cross-meeting linking
+- Reuse exact canonical topic names so future meetings connect to the same graph nodes
+- Create topic hub stub notes ("Topic — {name}.md") for new subjects
+- Create separate notes when useful (main note, action items, decisions, topic hubs)
 - Filenames must not contain path separators or invalid characters
 "#;
 
