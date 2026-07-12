@@ -72,11 +72,12 @@ export class RecordingService {
     meetingName: string,
     highQualityLiveTranscription = false
   ): Promise<void> {
+    // Tauri converts Rust snake_case args to camelCase for JS invoke keys.
     return invoke('start_recording_with_devices_and_meeting', {
-      mic_device_name: micDeviceName,
-      system_device_name: systemDeviceName,
-      meeting_name: meetingName,
-      high_quality_live_transcription: highQualityLiveTranscription,
+      micDeviceName,
+      systemDeviceName,
+      meetingName,
+      highQualityLiveTranscription,
     });
   }
 
