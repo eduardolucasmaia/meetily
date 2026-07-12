@@ -126,7 +126,11 @@ export function BetaSettings() {
     saveObsidianExportSettings(obsidianSettings);
   }, [obsidianSettings]);
 
-  const featureOrder: BetaFeatureKey[] = ['importAndRetranscribe', 'obsidianExport'];
+  const featureOrder: BetaFeatureKey[] = [
+    'importAndRetranscribe',
+    'obsidianExport',
+    'highQualityLiveTranscription',
+  ];
 
   return (
     <div className="space-y-6">

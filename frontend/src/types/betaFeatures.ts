@@ -27,11 +27,17 @@ export interface BetaFeatures {
    * @since v0.3.0
    */
   obsidianExport: boolean;
+  /**
+   * Use Enhance-style speech segmentation for live transcripts
+   * @since v0.3.0
+   */
+  highQualityLiveTranscription: boolean;
 }
 
 export const DEFAULT_BETA_FEATURES: BetaFeatures = {
   importAndRetranscribe: true, // Default: enabled
   obsidianExport: false,
+  highQualityLiveTranscription: false,
 };
 
 
@@ -41,6 +47,7 @@ export const DEFAULT_BETA_FEATURES: BetaFeatures = {
 export const BETA_FEATURE_NAMES: Record<keyof BetaFeatures, string> = {
   importAndRetranscribe: 'Import Audio & Retranscribe',
   obsidianExport: 'Export to Obsidian',
+  highQualityLiveTranscription: 'High-quality live transcription',
 };
 
 /**
@@ -49,6 +56,8 @@ export const BETA_FEATURE_NAMES: Record<keyof BetaFeatures, string> = {
 export const BETA_FEATURE_DESCRIPTIONS: Record<keyof BetaFeatures, string> = {
   importAndRetranscribe: 'Import audio files to transcribe or retranscribe existing meetings with different language settings.',
   obsidianExport: 'Generate Obsidian-ready markdown notes from meetings and export them to your vault folder.',
+  highQualityLiveTranscription:
+    'Use Enhance-style speech segmentation for live transcripts. Lines appear more slowly, but wording is usually clearer. Applies to the next recording.',
 };
 
 /**
