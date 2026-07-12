@@ -116,6 +116,7 @@ impl RecordingManager {
             mic_kind,
             sys_name,
             sys_kind,
+            false, // Task 3 will wire high_quality_live_transcription from settings
         )?;
 
         // Give the pipeline a moment to fully initialize before starting streams
