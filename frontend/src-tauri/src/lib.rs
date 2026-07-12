@@ -87,13 +87,15 @@ async fn start_recording<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
     meeting_name: Option<String>,
+    high_quality_live_transcription: Option<bool>,
 ) -> Result<(), String> {
     log_info!("🔥 CALLED start_recording with meeting: {:?}", meeting_name);
     log_info!(
-        "📋 Backend received parameters - mic: {:?}, system: {:?}, meeting: {:?}",
+        "📋 Backend received parameters - mic: {:?}, system: {:?}, meeting: {:?}, high_quality: {:?}",
         mic_device_name,
         system_device_name,
-        meeting_name
+        meeting_name,
+        high_quality_live_transcription
     );
 
     if is_recording().await {
@@ -106,6 +108,7 @@ async fn start_recording<R: Runtime>(
         mic_device_name,
         system_device_name,
         meeting_name.clone(),
+        high_quality_live_transcription,
     )
     .await
     {
@@ -301,7 +304,7 @@ async fn start_recording_with_devices<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
 ) -> Result<(), String> {
-    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None).await
+    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None, None).await
 }
 
 #[tauri::command]
@@ -310,9 +313,10 @@ async fn start_recording_with_devices_and_meeting<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
     meeting_name: Option<String>,
+    high_quality_live_transcription: Option<bool>,
 ) -> Result<(), String> {
-    log_info!("🚀 CALLED start_recording_with_devices_and_meeting - Mic: {:?}, System: {:?}, Meeting: {:?}",
-             mic_device_name, system_device_name, meeting_name);
+    log_info!("🚀 CALLED start_recording_with_devices_and_meeting - Mic: {:?}, System: {:?}, Meeting: {:?}, high_quality: {:?}",
+             mic_device_name, system_device_name, meeting_name, high_quality_live_transcription);
 
     // Clone meeting_name for notification use later
     let meeting_name_for_notification = meeting_name.clone();
@@ -339,6 +343,7 @@ async fn start_recording_with_devices_and_meeting<R: Runtime>(
                 mic_device_name,
                 system_device_name,
                 meeting_name,
+                high_quality_live_transcription,
             )
             .await
         }
