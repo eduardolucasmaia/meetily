@@ -328,8 +328,12 @@ async fn start_recording_with_devices_and_meeting<R: Runtime>(
                 "No devices specified, starting with defaults and meeting: {:?}",
                 meeting_name
             );
-            audio::recording_commands::start_recording_with_meeting_name(app.clone(), meeting_name)
-                .await
+            audio::recording_commands::start_recording_with_meeting_name(
+                app.clone(),
+                meeting_name,
+                high_quality_live_transcription,
+            )
+            .await
         }
         _ => {
             log_info!(
