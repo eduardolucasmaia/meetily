@@ -18,7 +18,10 @@ use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
 use super::audio_processing::create_meeting_folder;
-use super::common::{create_transcript_segments, split_segment_at_silence, write_transcripts_json};
+use super::common::{
+    create_transcript_segments, split_segment_at_silence, write_transcripts_json,
+    VAD_REDEMPTION_TIME_MS_HIGH_QUALITY, MAX_SEGMENT_SAMPLES,
+};
 use super::constants::AUDIO_EXTENSIONS;
 use super::recording_preferences::get_default_recordings_folder;
 
@@ -55,7 +58,6 @@ impl Drop for ImportGuard {
 /// Batch processing needs longer redemption (2000ms) than live pipeline (400ms)
 /// because the entire file is processed at once by VAD, and 400ms fragments
 /// speech at every natural sentence/topic pause (500ms-2s)
-const VAD_REDEMPTION_TIME_MS: u32 = 2000;
 
 /// Maximum file size: 20GB (prevents OOM and excessive processing time)
 const MAX_FILE_SIZE_BYTES: u64 = 20 * 1024 * 1024 * 1024; // 20GB
@@ -433,7 +435,7 @@ async fn run_import<R: Runtime>(
     let speech_segments = tokio::task::spawn_blocking(move || {
         get_speech_chunks_with_progress(
             &audio_samples,
-            VAD_REDEMPTION_TIME_MS,
+            VAD_REDEMPTION_TIME_MS_HIGH_QUALITY,
             |vad_progress, segments_found| {
                 let overall_progress = 25 + (vad_progress as f32 * 0.05) as u32;
                 emit_progress(
@@ -454,7 +456,7 @@ async fn run_import<R: Runtime>(
     .map_err(|e| anyhow!("VAD processing failed: {}", e))?;
 
     let total_segments = speech_segments.len();
-    info!("VAD detected {} speech segments (redemption_time={}ms)", total_segments, VAD_REDEMPTION_TIME_MS);
+    info!("VAD detected {} speech segments (redemption_time={}ms)", total_segments, VAD_REDEMPTION_TIME_MS_HIGH_QUALITY);
 
     // Diagnostic: log segment duration distribution
     if !speech_segments.is_empty() {
@@ -522,7 +524,6 @@ async fn run_import<R: Runtime>(
     // Split very long segments at silence boundaries for better transcription quality.
     // Hard cuts at arbitrary sample positions lose words at boundaries. Instead, scan
     // for the lowest-energy window near the target split point and cut there.
-    const MAX_SEGMENT_SAMPLES: usize = 25 * 16000; // 25 seconds at 16kHz
 
     let mut processable_segments: Vec<crate::audio::vad::SpeechSegment> = Vec::new();
     for segment in &speech_segments {
@@ -1118,7 +1119,7 @@ mod tests {
             end_timestamp_ms: 1000.0,
             confidence: 0.9,
         };
-        let result = split_segment_at_silence(&segment, 25 * 16000);
+        let result = split_segment_at_silence(&segment, MAX_SEGMENT_SAMPLES);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].samples.len(), 16000);
     }
@@ -1128,7 +1129,7 @@ mod tests {
         // 60-second segment of low-level noise with a silent gap at ~25s
         let mut samples = vec![0.01f32; 60 * 16000];
         // Insert silence at 25 seconds (sample 400000)
-        for i in (25 * 16000)..(25 * 16000 + 3200) {
+        for i in (MAX_SEGMENT_SAMPLES)..(MAX_SEGMENT_SAMPLES + 3200) {
             samples[i] = 0.0;
         }
         let segment = crate::audio::vad::SpeechSegment {
@@ -1138,7 +1139,7 @@ mod tests {
             confidence: 0.9,
         };
 
-        let result = split_segment_at_silence(&segment, 25 * 16000);
+        let result = split_segment_at_silence(&segment, MAX_SEGMENT_SAMPLES);
         assert!(result.len() >= 2, "Should split into at least 2 segments, got {}", result.len());
 
         // All sub-segments should have samples
@@ -1162,7 +1163,7 @@ mod tests {
             confidence: 0.9,
         };
 
-        let result = split_segment_at_silence(&segment, 25 * 16000);
+        let result = split_segment_at_silence(&segment, MAX_SEGMENT_SAMPLES);
         assert!(result.len() >= 2);
 
         // Total samples should exceed input due to overlap

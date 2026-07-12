@@ -10,6 +10,18 @@ use uuid::Uuid;
 static ENGINE_LIFECYCLE_LOCK: Lazy<Arc<AsyncMutex<()>>> =
     Lazy::new(|| Arc::new(AsyncMutex::new(())));
 
+pub const VAD_REDEMPTION_TIME_MS_LIVE_DEFAULT: u32 = 400;
+pub const VAD_REDEMPTION_TIME_MS_HIGH_QUALITY: u32 = 2000;
+pub const MAX_SEGMENT_SAMPLES: usize = 25 * 16000;
+
+pub fn live_vad_redemption_ms(high_quality: bool) -> u32 {
+    if high_quality {
+        VAD_REDEMPTION_TIME_MS_HIGH_QUALITY
+    } else {
+        VAD_REDEMPTION_TIME_MS_LIVE_DEFAULT
+    }
+}
+
 pub(crate) async fn acquire_engine_lifecycle_lock() -> OwnedMutexGuard<()> {
     ENGINE_LIFECYCLE_LOCK.clone().lock_owned().await
 }
@@ -232,5 +244,21 @@ mod tests {
 
         acquired_rx.await.unwrap();
         waiter.await.unwrap();
+    }
+
+    #[test]
+    fn live_vad_redemption_ms_defaults_to_400() {
+        assert_eq!(live_vad_redemption_ms(false), 400);
+    }
+
+    #[test]
+    fn live_vad_redemption_ms_high_quality_is_2000() {
+        assert_eq!(live_vad_redemption_ms(true), 2000);
+    }
+
+    #[test]
+    fn high_quality_constants_match_enhance_values() {
+        assert_eq!(VAD_REDEMPTION_TIME_MS_HIGH_QUALITY, 2000);
+        assert_eq!(MAX_SEGMENT_SAMPLES, 25 * 16000);
     }
 }
