@@ -2,7 +2,10 @@
 
 use crate::audio::decoder::decode_audio_file;
 use crate::audio::vad::get_speech_chunks_with_progress;
-use super::common::{create_transcript_segments, split_segment_at_silence, write_transcripts_json};
+use super::common::{
+    create_transcript_segments, split_segment_at_silence, write_transcripts_json,
+    VAD_REDEMPTION_TIME_MS_HIGH_QUALITY, MAX_SEGMENT_SAMPLES,
+};
 use super::constants::AUDIO_EXTENSIONS;
 use crate::config::{DEFAULT_WHISPER_MODEL, DEFAULT_PARAKEET_MODEL};
 use crate::parakeet_engine::ParakeetEngine;
@@ -49,7 +52,6 @@ impl Drop for RetranscriptionGuard {
 /// Batch processing needs longer redemption (2000ms) than live pipeline (400ms)
 /// because the entire file is processed at once by VAD, and 400ms fragments
 /// speech at every natural sentence/topic pause (500ms-2s)
-const VAD_REDEMPTION_TIME_MS: u32 = 2000;
 
 /// Progress update emitted during retranscription
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -241,7 +243,7 @@ async fn run_retranscription<R: Runtime>(
     let speech_segments = tokio::task::spawn_blocking(move || {
         get_speech_chunks_with_progress(
             &audio_samples,
-            VAD_REDEMPTION_TIME_MS,
+            VAD_REDEMPTION_TIME_MS_HIGH_QUALITY,
             |vad_progress, segments_found| {
                 // Map VAD progress (0-100) to overall progress (20-25)
                 let overall_progress = 20 + (vad_progress as f32 * 0.05) as u32;
@@ -263,7 +265,7 @@ async fn run_retranscription<R: Runtime>(
     .map_err(|e| anyhow!("VAD processing failed: {}", e))?;
 
     let total_segments = speech_segments.len();
-    info!("VAD detected {} speech segments (redemption_time={}ms)", total_segments, VAD_REDEMPTION_TIME_MS);
+    info!("VAD detected {} speech segments (redemption_time={}ms)", total_segments, VAD_REDEMPTION_TIME_MS_HIGH_QUALITY);
 
     // Diagnostic: log segment duration distribution
     if !speech_segments.is_empty() {
@@ -313,7 +315,6 @@ async fn run_retranscription<R: Runtime>(
     // Split very long segments at silence boundaries for better transcription quality.
     // Hard cuts at arbitrary sample positions lose words at boundaries. Instead, scan
     // for the lowest-energy window near the target split point and cut there.
-    const MAX_SEGMENT_SAMPLES: usize = 25 * 16000; // 25 seconds at 16kHz
 
     let mut processable_segments: Vec<crate::audio::vad::SpeechSegment> = Vec::new();
     for segment in &speech_segments {
@@ -931,7 +932,7 @@ mod tests {
     #[test]
     fn test_vad_redemption_time_constant() {
         // Batch processing uses 2000ms to bridge natural pauses in full-file VAD
-        assert_eq!(VAD_REDEMPTION_TIME_MS, 2000);
+        assert_eq!(VAD_REDEMPTION_TIME_MS_HIGH_QUALITY, 2000);
     }
 
     #[test]

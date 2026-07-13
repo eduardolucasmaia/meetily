@@ -694,6 +694,7 @@ pub struct AudioPipeline {
     mixer: ProfessionalAudioMixer,
     // Recording sender for pre-mixed audio
     recording_sender_for_mixed: Option<mpsc::UnboundedSender<AudioChunk>>,
+    high_quality_live_transcription: bool,
 }
 
 impl AudioPipeline {
@@ -707,6 +708,7 @@ impl AudioPipeline {
         mic_device_kind: super::device_detection::InputDeviceKind,
         system_device_name: String,
         system_device_kind: super::device_detection::InputDeviceKind,
+        high_quality_live_transcription: bool,
     ) -> Self {
         // Log device characteristics for adaptive buffering
         info!("🎛️ AudioPipeline initializing with device characteristics:");
@@ -719,12 +721,12 @@ impl AudioPipeline {
         // For now, we log it for monitoring and potential optimization
         let _ = (mic_device_name, mic_device_kind, system_device_name, system_device_kind);
 
-        // Create VAD processor with balanced redemption time for speech accumulation
-        // The VAD processor now handles 48kHz->16kHz resampling internally
-        // This bridges natural pauses without excessive fragmentation
-        // For mac os core audio, 900ms, for windows 400ms seems good
-
-        let redemption_time = if cfg!(target_os = "macos") { 400 } else { 400 };
+        let redemption_time =
+            crate::audio::common::live_vad_redemption_ms(high_quality_live_transcription);
+        info!(
+            "Live VAD redemption_ms={} high_quality={}",
+            redemption_time, high_quality_live_transcription
+        );
 
         let vad_processor = match ContinuousVadProcessor::new(sample_rate, redemption_time) {
             Ok(processor) => {
@@ -760,6 +762,23 @@ impl AudioPipeline {
             ring_buffer,
             mixer,
             recording_sender_for_mixed: None,  // Will be set by manager
+            high_quality_live_transcription,
+        }
+    }
+
+    fn segments_to_send(
+        &self,
+        segment: crate::audio::vad::SpeechSegment,
+    ) -> Vec<crate::audio::vad::SpeechSegment> {
+        if self.high_quality_live_transcription
+            && segment.samples.len() > crate::audio::common::MAX_SEGMENT_SAMPLES
+        {
+            crate::audio::common::split_segment_at_silence(
+                &segment,
+                crate::audio::common::MAX_SEGMENT_SAMPLES,
+            )
+        } else {
+            vec![segment]
         }
     }
 
@@ -835,28 +854,40 @@ impl AudioPipeline {
                             match self.vad_processor.process_audio(&mixed_with_gain) {
                                 Ok(speech_segments) => {
                                     for segment in speech_segments {
-                                        let duration_ms = segment.end_timestamp_ms - segment.start_timestamp_ms;
+                                        for segment in self.segments_to_send(segment) {
+                                            let duration_ms =
+                                                segment.end_timestamp_ms - segment.start_timestamp_ms;
 
-                                        if segment.samples.len() >= 800 {  // Minimum 50ms at 16kHz - matches Parakeet capability
-                                            info!("📤 Sending VAD segment: {:.1}ms, {} samples",
-                                                  duration_ms, segment.samples.len());
+                                            if segment.samples.len() >= 800 {
+                                                // Minimum 50ms at 16kHz - matches Parakeet capability
+                                                info!(
+                                                    "📤 Sending VAD segment: {:.1}ms, {} samples",
+                                                    duration_ms,
+                                                    segment.samples.len()
+                                                );
 
-                                            let transcription_chunk = AudioChunk {
-                                                data: segment.samples,
-                                                sample_rate: 16000,
-                                                timestamp: segment.start_timestamp_ms / 1000.0,
-                                                chunk_id: self.chunk_id_counter,
-                                                device_type: DeviceType::Microphone,  // Mixed audio
-                                            };
+                                                let transcription_chunk = AudioChunk {
+                                                    data: segment.samples,
+                                                    sample_rate: 16000,
+                                                    timestamp: segment.start_timestamp_ms / 1000.0,
+                                                    chunk_id: self.chunk_id_counter,
+                                                    device_type: DeviceType::Microphone, // Mixed audio
+                                                };
 
-                                            if let Err(e) = self.transcription_sender.send(transcription_chunk) {
-                                                warn!("Failed to send VAD segment: {}", e);
+                                                if let Err(e) =
+                                                    self.transcription_sender.send(transcription_chunk)
+                                                {
+                                                    warn!("Failed to send VAD segment: {}", e);
+                                                } else {
+                                                    self.chunk_id_counter += 1;
+                                                }
                                             } else {
-                                                self.chunk_id_counter += 1;
+                                                debug!(
+                                                    "⏭️ Dropping short VAD segment: {:.1}ms ({} samples < 800)",
+                                                    duration_ms,
+                                                    segment.samples.len()
+                                                );
                                             }
-                                        } else {
-                                            debug!("⏭️ Dropping short VAD segment: {:.1}ms ({} samples < 800)",
-                                                   duration_ms, segment.samples.len());
                                         }
                                     }
                                 }
@@ -904,29 +935,38 @@ impl AudioPipeline {
         match self.vad_processor.flush() {
             Ok(final_segments) => {
                 for segment in final_segments {
-                    let duration_ms = segment.end_timestamp_ms - segment.start_timestamp_ms;
+                    for segment in self.segments_to_send(segment) {
+                        let duration_ms =
+                            segment.end_timestamp_ms - segment.start_timestamp_ms;
 
-                    // Send segments >= 50ms (800 samples at 16kHz) - matches main pipeline filter
-                    if segment.samples.len() >= 800 {
-                        info!("📤 Sending final VAD segment to Whisper: {:.1}ms duration, {} samples",
-                              duration_ms, segment.samples.len());
+                        // Send segments >= 50ms (800 samples at 16kHz) - matches main pipeline filter
+                        if segment.samples.len() >= 800 {
+                            info!(
+                                "📤 Sending final VAD segment to Whisper: {:.1}ms duration, {} samples",
+                                duration_ms,
+                                segment.samples.len()
+                            );
 
-                        let transcription_chunk = AudioChunk {
-                            data: segment.samples,
-                            sample_rate: 16000,
-                            timestamp: segment.start_timestamp_ms / 1000.0,
-                            chunk_id: self.chunk_id_counter,
-                            device_type: DeviceType::Microphone,
-                        };
+                            let transcription_chunk = AudioChunk {
+                                data: segment.samples,
+                                sample_rate: 16000,
+                                timestamp: segment.start_timestamp_ms / 1000.0,
+                                chunk_id: self.chunk_id_counter,
+                                device_type: DeviceType::Microphone,
+                            };
 
-                        if let Err(e) = self.transcription_sender.send(transcription_chunk) {
-                            warn!("Failed to send final VAD segment: {}", e);
+                            if let Err(e) = self.transcription_sender.send(transcription_chunk) {
+                                warn!("Failed to send final VAD segment: {}", e);
+                            } else {
+                                self.chunk_id_counter += 1;
+                            }
                         } else {
-                            self.chunk_id_counter += 1;
+                            info!(
+                                "⏭️ Skipping short final segment: {:.1}ms ({} samples < 800)",
+                                duration_ms,
+                                segment.samples.len()
+                            );
                         }
-                    } else {
-                        info!("⏭️ Skipping short final segment: {:.1}ms ({} samples < 800)",
-                              duration_ms, segment.samples.len());
                     }
                 }
             }
@@ -966,6 +1006,7 @@ impl AudioPipelineManager {
         mic_device_kind: super::device_detection::InputDeviceKind,
         system_device_name: String,
         system_device_kind: super::device_detection::InputDeviceKind,
+        high_quality_live_transcription: bool,
     ) -> Result<()> {
         // Log device information for adaptive buffering
         info!("🎙️ Starting pipeline with device info:");
@@ -989,6 +1030,7 @@ impl AudioPipelineManager {
             mic_device_kind,
             system_device_name,
             system_device_kind,
+            high_quality_live_transcription,
         );
 
         // CRITICAL FIX: Connect recording sender to receive pre-mixed audio

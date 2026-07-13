@@ -37,7 +37,7 @@ export function useRecordingStart(
 
   const { clearTranscripts, setMeetingTitle } = useTranscripts();
   const { setIsMeetingActive } = useSidebar();
-  const { selectedDevices, transcriptModelConfig } = useConfig();
+  const { selectedDevices, transcriptModelConfig, betaFeatures } = useConfig();
   const { setStatus } = useRecordingState();
 
   // Generate meeting title with timestamp
@@ -112,7 +112,8 @@ export function useRecordingStart(
       await recordingService.startRecordingWithDevices(
         selectedDevices?.micDevice || null,
         selectedDevices?.systemDevice || null,
-        randomTitle
+        randomTitle,
+        !!betaFeatures.highQualityLiveTranscription
       );
       console.log('Backend recording started successfully');
 
@@ -134,7 +135,7 @@ export function useRecordingStart(
       // Re-throw so RecordingControls can handle device-specific errors
       throw error;
     }
-  }, [generateMeetingTitle, setMeetingTitle, setIsRecording, clearTranscripts, setIsMeetingActive, blockIfModelNotReady, transcriptModelConfig?.provider, selectedDevices, showModal, setStatus]);
+  }, [generateMeetingTitle, setMeetingTitle, setIsRecording, clearTranscripts, setIsMeetingActive, blockIfModelNotReady, transcriptModelConfig?.provider, selectedDevices, betaFeatures.highQualityLiveTranscription, showModal, setStatus]);
 
   // Check for autoStartRecording flag and start recording automatically
   useEffect(() => {
@@ -163,7 +164,8 @@ export function useRecordingStart(
             const result = await recordingService.startRecordingWithDevices(
               selectedDevices?.micDevice || null,
               selectedDevices?.systemDevice || null,
-              generatedMeetingTitle
+              generatedMeetingTitle,
+              !!betaFeatures.highQualityLiveTranscription
             );
             console.log('Auto-start backend recording result:', result);
 
@@ -200,6 +202,7 @@ export function useRecordingStart(
     clearTranscripts,
     setIsMeetingActive,
     blockIfModelNotReady,
+    betaFeatures.highQualityLiveTranscription,
     showModal,
     setStatus,
   ]);
@@ -231,7 +234,8 @@ export function useRecordingStart(
         const result = await recordingService.startRecordingWithDevices(
           selectedDevices?.micDevice || null,
           selectedDevices?.systemDevice || null,
-          generatedMeetingTitle
+          generatedMeetingTitle,
+          !!betaFeatures.highQualityLiveTranscription
         );
         console.log('Backend recording result:', result);
 
@@ -270,6 +274,7 @@ export function useRecordingStart(
     clearTranscripts,
     setIsMeetingActive,
     blockIfModelNotReady,
+    betaFeatures.highQualityLiveTranscription,
     showModal,
     setStatus,
   ]);

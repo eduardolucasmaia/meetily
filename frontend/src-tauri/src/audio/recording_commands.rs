@@ -67,17 +67,19 @@ pub struct TranscriptionStatus {
 
 /// Start recording with default devices
 pub async fn start_recording<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
-    start_recording_with_meeting_name(app, None).await
+    start_recording_with_meeting_name(app, None, None).await
 }
 
 /// Start recording with default devices and optional meeting name
 pub async fn start_recording_with_meeting_name<R: Runtime>(
     app: AppHandle<R>,
     meeting_name: Option<String>,
+    high_quality_live_transcription: Option<bool>,
 ) -> Result<(), String> {
+    let high_quality = high_quality_live_transcription.unwrap_or(false);
     info!(
-        "Starting recording with default devices, meeting: {:?}",
-        meeting_name
+        "Starting recording with default devices, meeting: {:?}, high_quality={}",
+        meeting_name, high_quality
     );
 
     let engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
@@ -234,7 +236,7 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
 
     // Start recording with resolved devices (replaces start_recording_with_defaults_and_auto_save call)
     let transcription_receiver = manager
-        .start_recording(microphone_device, system_device, auto_save)
+        .start_recording(microphone_device, system_device, auto_save, high_quality)
         .await
         .map_err(|e| format!("Failed to start recording: {}", e))?;
 
@@ -311,7 +313,7 @@ pub async fn start_recording_with_devices<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
 ) -> Result<(), String> {
-    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None).await
+    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None, None).await
 }
 
 /// Start recording with specific devices and optional meeting name
@@ -320,10 +322,12 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
     meeting_name: Option<String>,
+    high_quality_live_transcription: Option<bool>,
 ) -> Result<(), String> {
+    let high_quality = high_quality_live_transcription.unwrap_or(false);
     info!(
-        "Starting recording with specific devices: mic={:?}, system={:?}, meeting={:?}",
-        mic_device_name, system_device_name, meeting_name
+        "Starting recording with specific devices: mic={:?}, system={:?}, meeting={:?}, high_quality={}",
+        mic_device_name, system_device_name, meeting_name, high_quality
     );
 
     let engine_lifecycle_guard = super::common::acquire_engine_lifecycle_lock().await;
@@ -405,7 +409,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
 
     // Start recording with specified devices and auto_save setting
     let transcription_receiver = manager
-        .start_recording(mic_device, system_device, auto_save)
+        .start_recording(mic_device, system_device, auto_save, high_quality)
         .await
         .map_err(|e| format!("Failed to start recording: {}", e))?;
 
