@@ -1,8 +1,22 @@
 import { invoke } from "@tauri-apps/api/core";
+import { configService } from "@/services/configService";
 
 type ModelStatusRow = {
   status?: string | Record<string, unknown>;
 };
+
+const DEFAULT_LIVE_PROVIDER = "parakeet";
+
+/** Read the saved live transcription provider from the backend (source of truth). */
+export async function getConfiguredLiveTranscriptionProvider(): Promise<string> {
+  try {
+    const config = await configService.getTranscriptConfig();
+    return config.provider || DEFAULT_LIVE_PROVIDER;
+  } catch (error) {
+    console.error("Failed to load transcript config for model gate:", error);
+    return DEFAULT_LIVE_PROVIDER;
+  }
+}
 
 function isDownloadingStatus(status: ModelStatusRow["status"]): boolean {
   if (!status) return false;
@@ -35,6 +49,16 @@ export async function checkTranscriptionModelReady(
     console.error(`Failed to check ${provider} transcription status:`, error);
     return false;
   }
+}
+
+export async function checkConfiguredTranscriptionModelReady(): Promise<boolean> {
+  const provider = await getConfiguredLiveTranscriptionProvider();
+  return checkTranscriptionModelReady(provider);
+}
+
+export async function checkConfiguredTranscriptionModelDownloading(): Promise<boolean> {
+  const provider = await getConfiguredLiveTranscriptionProvider();
+  return checkTranscriptionModelDownloading(provider);
 }
 
 export async function checkTranscriptionModelDownloading(
