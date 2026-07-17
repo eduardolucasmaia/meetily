@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   checkTranscriptionModelDownloading,
   checkTranscriptionModelReady,
+  getConfiguredLiveTranscriptionProvider,
 } from '@/hooks/transcriptionModelGate';
 
 interface UseRecordingStartReturn {
@@ -54,7 +55,7 @@ export function useRecordingStart(
 
   const blockIfModelNotReady = useCallback(
     async (analyticsSource: string): Promise<boolean> => {
-      const provider = transcriptModelConfig?.provider || 'parakeet';
+      const provider = await getConfiguredLiveTranscriptionProvider();
       const ready = await checkTranscriptionModelReady(provider);
       if (ready) return false;
 
@@ -84,7 +85,7 @@ export function useRecordingStart(
       setStatus(RecordingStatus.IDLE);
       return true; // blocked
     },
-    [transcriptModelConfig?.provider, showModal, setStatus]
+    [showModal, setStatus]
   );
 
   // Handle manual recording start (from button click)

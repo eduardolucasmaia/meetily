@@ -15,6 +15,43 @@ describe("transcriptionModelGate", () => {
     expect(isLiveTranscriptionProvider("groq")).toBe(false);
   });
 
+  test("getConfiguredLiveTranscriptionProvider reads saved config", async () => {
+    const invokeMock = mock(async (cmd: string) => {
+      if (cmd === "api_get_transcript_config") {
+        return { provider: "localWhisper", model: "large-v3", apiKey: null };
+      }
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+    mock.module("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
+
+    const { getConfiguredLiveTranscriptionProvider } = await import(
+      "../../src/hooks/transcriptionModelGate"
+    );
+    await expect(getConfiguredLiveTranscriptionProvider()).resolves.toBe("localWhisper");
+  });
+
+  test("checkConfiguredTranscriptionModelReady uses saved provider", async () => {
+    const invokeMock = mock(async (cmd: string) => {
+      if (cmd === "api_get_transcript_config") {
+        return { provider: "localWhisper", model: "large-v3", apiKey: null };
+      }
+      if (cmd === "whisper_init") return;
+      if (cmd === "whisper_has_available_models") return true;
+      throw new Error(`unexpected command: ${cmd}`);
+    });
+    mock.module("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
+
+    const { checkConfiguredTranscriptionModelReady } = await import(
+      "../../src/hooks/transcriptionModelGate"
+    );
+    await expect(checkConfiguredTranscriptionModelReady()).resolves.toBe(true);
+    expect(invokeMock.mock.calls.map((c) => c[0])).toEqual([
+      "api_get_transcript_config",
+      "whisper_init",
+      "whisper_has_available_models",
+    ]);
+  });
+
   test("checkTranscriptionModelReady uses whisper commands for localWhisper", async () => {
     const invokeMock = mock(async (cmd: string) => {
       if (cmd === "whisper_init") return;
