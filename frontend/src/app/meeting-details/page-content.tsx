@@ -246,6 +246,8 @@ export default function PageContent({
           onOpenModelSettings={handleRegisterModalOpen}
           obsidianExportEnabled={obsidianExport.isEnabled}
           isObsidianExporting={obsidianExport.isExporting}
+          isObsidianExported={obsidianExport.isExported}
+          obsidianExportedAt={obsidianExport.exportedAt}
           onExportToObsidian={obsidianExport.exportToObsidian}
         />
       </div>

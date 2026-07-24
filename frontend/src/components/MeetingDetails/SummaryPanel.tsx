@@ -63,6 +63,8 @@ interface SummaryPanelProps {
   onOpenModelSettings?: (openFn: () => void) => void;
   obsidianExportEnabled?: boolean;
   isObsidianExporting?: boolean;
+  isObsidianExported?: boolean;
+  obsidianExportedAt?: string;
   onExportToObsidian?: () => Promise<void>;
 }
 
@@ -102,6 +104,8 @@ export function SummaryPanel({
   onOpenModelSettings,
   obsidianExportEnabled = false,
   isObsidianExporting = false,
+  isObsidianExported = false,
+  obsidianExportedAt,
   onExportToObsidian,
 }: SummaryPanelProps) {
   const [summaryLang, setSummaryLang] = useState<string | null>(null);
@@ -263,6 +267,8 @@ export function SummaryPanel({
     <ObsidianExportButton
       isEnabled={obsidianExportEnabled}
       isExporting={isObsidianExporting}
+      isExported={isObsidianExported}
+      exportedAt={obsidianExportedAt}
       onExport={onExportToObsidian}
     />
   ) : null;

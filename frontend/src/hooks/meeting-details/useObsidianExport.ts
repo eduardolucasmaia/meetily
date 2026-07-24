@@ -1,8 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { useConfig } from '@/contexts/ConfigContext';
 import { loadObsidianExportSettings } from '@/lib/obsidian-export-settings';
+import {
+  getObsidianExportRecord,
+  saveObsidianExportRecord,
+} from '@/lib/obsidian-export-history';
 import Analytics from '@/lib/analytics';
 
 interface ObsidianExportResult {
@@ -20,8 +24,16 @@ interface UseObsidianExportProps {
 export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExportProps) {
   const { betaFeatures } = useConfig();
   const [isExporting, setIsExporting] = useState(false);
+  const [isExported, setIsExported] = useState(false);
+  const [exportedAt, setExportedAt] = useState<string | undefined>();
 
   const isEnabled = betaFeatures.obsidianExport && hasTranscripts;
+
+  useEffect(() => {
+    const record = getObsidianExportRecord(meetingId);
+    setIsExported(!!record);
+    setExportedAt(record?.exportedAt);
+  }, [meetingId]);
 
   const exportToObsidian = useCallback(async (source: ObsidianExportSource = 'manual') => {
     if (!betaFeatures.obsidianExport) {
@@ -64,6 +76,14 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
         userPrompt: settings.prompt,
       });
 
+      const exportedAtIso = new Date().toISOString();
+      saveObsidianExportRecord(meetingId, {
+        exportedAt: exportedAtIso,
+        exportedPath: result.exportedPath,
+      });
+      setIsExported(true);
+      setExportedAt(exportedAtIso);
+
       if (source === 'auto') {
         toast.success('Obsidian notes exported automatically', {
           description: `${result.fileCount} file(s) saved to your vault`,
@@ -104,6 +124,8 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
   return {
     isEnabled,
     isExporting,
+    isExported,
+    exportedAt,
     exportToObsidian,
   };
 }

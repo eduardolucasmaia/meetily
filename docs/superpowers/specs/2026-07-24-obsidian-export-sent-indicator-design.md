@@ -28,6 +28,7 @@ Add a visual indicator on the **Send to Obsidian** button when a meeting has alr
 | Re-export behavior | Always allowed; no confirmation dialog |
 | Auto-export counts | Yes — auto-export after summary marks as sent |
 | Summary regeneration | Does not reset sent indicator |
+| Pre-feature exports | No backfill — meetings exported before this feature show default state until next export |
 | Backend changes | None |
 
 ## Data Model
@@ -131,8 +132,13 @@ No Rust/Tauri changes.
 | Meeting never exported | Default button appearance |
 | Beta toggle off | Button hidden (unchanged) |
 
+## Pre-Feature Exports (No Backfill)
+
+Meetings exported to Obsidian **before** this feature ships have no stored history. Their button will show the default "Send to Obsidian" state. The sent indicator appears only after the first successful export once the feature is active. This is intentional — no vault folder detection or manual backfill.
+
 ## Out of Scope
 
+- Backfill for pre-feature exports
 - Blocking re-export
 - Confirmation dialog before re-export
 - Resetting indicator when summary is regenerated
