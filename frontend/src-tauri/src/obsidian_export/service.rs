@@ -11,6 +11,7 @@ use crate::database::repositories::summary::SummaryProcessesRepository;
 use crate::database::repositories::meeting::MeetingsRepository;
 use crate::summary::llm_client::{generate_summary, LLMProvider};
 
+use super::conversation::build_conversation_file;
 use super::parser::{parse_delimiter_format, parse_obsidian_response, ObsidianExportResult};
 use super::prompt::{
     build_meeting_context, build_user_prompt, JSON_RETRY_SUFFIX, OBSIDIAN_SYSTEM_PROMPT,
@@ -81,6 +82,11 @@ pub async fn export_meeting_to_obsidian(
                 })?
         }
     };
+
+    let mut files = files;
+    let conversation_file =
+        build_conversation_file(&meeting, &transcripts, summary_markdown.as_deref())?;
+    files.push(conversation_file);
 
     let file_count = files.len();
     let subfolder = meeting_subfolder_name(&meeting.created_at.0, &meeting.title);
