@@ -43,17 +43,18 @@ if not defined VCVARS (
     exit /b 1
 )
 
+REM Use newest installed toolkit (CUDA_PATH may still point at an older version after upgrade)
 set "CUDA_TOOLKIT_VER="
-if defined CUDA_PATH (
-    for %%i in ("%CUDA_PATH%") do set "CUDA_TOOLKIT_VER=%%~nxi"
-)
-if not defined CUDA_TOOLKIT_VER (
-    for /f "delims=" %%d in ('dir /b /ad /o-n "%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA" 2^>nul') do (
-        set "CUDA_TOOLKIT_VER=%%d"
-        goto :cuda_toolkit_found
-    )
+for /f "delims=" %%d in ('dir /b /ad /o-n "%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA" 2^>nul') do (
+    set "CUDA_TOOLKIT_VER=%%d"
+    goto :cuda_toolkit_found
 )
 :cuda_toolkit_found
+if defined CUDA_TOOLKIT_VER (
+    set "CUDA_PATH=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\!CUDA_TOOLKIT_VER!"
+    set "PATH=!CUDA_PATH!\bin;!PATH!"
+)
+echo Using CUDA toolkit: !CUDA_TOOLKIT_VER!
 if not defined CUDA_TOOLKIT_VER (
     echo ERROR: CUDA Toolkit not found. Install NVIDIA CUDA from https://developer.nvidia.com/cuda-downloads
     exit /b 1
@@ -87,6 +88,17 @@ if "%CUDA_PROPS_OK%"=="0" (
 
 echo Using Visual Studio environment: !VCVARS!
 call "!VCVARS!"
+
+REM vcvars can reset CUDA_PATH; re-apply newest toolkit for MSBuild CudaToolkitDir
+if defined CUDA_TOOLKIT_VER (
+    set "CUDA_PATH=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\!CUDA_TOOLKIT_VER!"
+    set "CudaToolkitDir=!CUDA_PATH!\"
+    set "PATH=!CUDA_PATH!\bin;!PATH!"
+)
+if not defined CMAKE_CUDA_ARCHITECTURES set "CMAKE_CUDA_ARCHITECTURES=86"
+REM CUDA 13.x + CCCL requires MSVC conforming preprocessor when nvcc invokes cl.exe
+if not defined CMAKE_CUDA_FLAGS set "CMAKE_CUDA_FLAGS=--std=c++17 -Xcompiler=/Zc:preprocessor -Xcompiler=/std:c++17"
+if not defined CMAKE_CUDA_COMPILER_FORCED set "CMAKE_CUDA_COMPILER_FORCED=ON"
 
 set CARGO_TARGET_DIR=C:\source-private\meetily\target
 set "LIBCLANG_PATH=C:\Program Files\LLVM\bin"
