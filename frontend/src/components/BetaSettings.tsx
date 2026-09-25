@@ -19,6 +19,7 @@ import {
   saveObsidianExportSettings,
   ObsidianExportSettings,
 } from "@/lib/obsidian-export-settings"
+import { ObsidianIntervieweesManager } from "@/components/ObsidianIntervieweesManager"
 
 function ObsidianExportConfig({
   settings,
@@ -102,6 +103,8 @@ function ObsidianExportConfig({
           Files are exported into a subfolder per meeting inside this path.
         </p>
       </div>
+
+      <ObsidianIntervieweesManager />
     </div>
   )
 }

@@ -17,6 +17,7 @@ interface MeetingDetailsResponse {
   updated_at: string;
   transcripts: Transcript[];
   folder_path?: string;
+  obsidian_vault_segment?: string;
 }
 
 function MeetingDetailsContent() {
@@ -134,6 +135,7 @@ function MeetingDetailsContent() {
         updated_at: metadata.updated_at,
         transcripts: transcripts, // Paginated transcripts from hook
         folder_path: metadata.folder_path, // For retranscription feature
+        obsidian_vault_segment: metadata.obsidian_vault_segment,
       });
 
       // Sync with sidebar context

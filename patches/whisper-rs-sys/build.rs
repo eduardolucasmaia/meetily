@@ -8,6 +8,44 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
+/// MSVC + Visual Studio 18 often needs explicit nvcc flags; see whisper.cpp CUDA Windows docs.
+fn apply_windows_cuda_cmake(config: &mut Config) {
+    if env::var("CMAKE_CUDA_ARCHITECTURES").is_err() {
+        config.define("CMAKE_CUDA_ARCHITECTURES", "86");
+    }
+    let mut flags = env::var("CMAKE_CUDA_FLAGS").unwrap_or_default();
+    if !flags.contains("allow-unsupported-compiler") {
+        flags = if flags.is_empty() {
+            "-allow-unsupported-compiler".to_string()
+        } else {
+            format!("{} -allow-unsupported-compiler", flags)
+        };
+    }
+    if !flags.contains("_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH") {
+        flags = format!("{} -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH", flags);
+    }
+    // CUDA 13+ CCCL headers require MSVC conforming preprocessor (see CCCL preprocessor.h)
+    if !flags.contains("Zc:preprocessor") {
+        flags = format!("{} -Xcompiler=/Zc:preprocessor", flags);
+    }
+    config.define("CMAKE_CUDA_FLAGS", flags.trim());
+
+    if env::var("CMAKE_CUDA_COMPILER").is_err() {
+        if let Ok(cuda_path) = env::var("CUDA_PATH") {
+            let nvcc = PathBuf::from(&cuda_path).join("bin").join("nvcc.exe");
+            if nvcc.exists() {
+                config.define(
+                    "CMAKE_CUDA_COMPILER",
+                    nvcc.to_string_lossy().replace('\\', "/"),
+                );
+            }
+        }
+    }
+    if env::var("CMAKE_CUDA_STANDARD").is_err() {
+        config.define("CMAKE_CUDA_STANDARD", "17");
+    }
+}
+
 fn main() {
     let target = env::var("TARGET").unwrap();
     // Link C++ standard library
@@ -182,6 +220,9 @@ fn main() {
 
     if cfg!(feature = "cuda") {
         config.define("GGML_CUDA", "ON");
+        if target.contains("windows") {
+            apply_windows_cuda_cmake(&mut config);
+        }
     }
 
     if cfg!(feature = "hipblas") {

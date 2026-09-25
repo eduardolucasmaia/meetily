@@ -92,6 +92,7 @@ export interface MeetingMetadata {
   created_at: string;
   updated_at: string;
   folder_path?: string;
+  obsidian_vault_segment?: string;
 }
 
 export interface PaginatedTranscriptsResponse {

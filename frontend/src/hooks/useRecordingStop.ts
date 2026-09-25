@@ -6,6 +6,7 @@ import { useTranscripts } from '@/contexts/TranscriptContext';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
 import { useRecordingState, RecordingStatus } from '@/contexts/RecordingStateContext';
 import { storageService } from '@/services/storageService';
+import { getRecordingObsidianVaultSegmentForSave } from '@/lib/obsidian-interviewees';
 import { transcriptService } from '@/services/transcriptService';
 import Analytics from '@/lib/analytics';
 import {
@@ -253,10 +254,13 @@ export function useRecordingStop(
         });
 
         try {
+          const obsidianVaultSegment = getRecordingObsidianVaultSegmentForSave();
+
           const responseData = await storageService.saveMeeting(
             savedMeetingName || meetingTitle || 'New Meeting',  // PREFER savedMeetingName (backend source)
             freshTranscripts,
-            folderPath
+            folderPath,
+            obsidianVaultSegment
           );
 
           const meetingId = responseData.meeting_id;

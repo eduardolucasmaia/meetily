@@ -179,7 +179,8 @@ export function useTranscriptRecovery(): UseTranscriptRecoveryReturn {
       const saveResponse = await storageService.saveMeeting(
         metadata.title,
         formattedTranscripts,
-        folderPath ?? null
+        folderPath ?? null,
+        metadata.obsidianVaultSegment ?? null
       );
 
       const savedMeetingId = saveResponse.meeting_id;

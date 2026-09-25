@@ -139,6 +139,7 @@ export default function PageContent({
   const obsidianExport = useObsidianExport({
     meetingId: meeting.id,
     hasTranscripts: meetingData.transcripts.length > 0,
+    obsidianVaultSegment: meeting.obsidian_vault_segment,
   });
 
   // Track page view

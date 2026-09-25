@@ -15,6 +15,7 @@ impl TranscriptsRepository {
         meeting_title: &str,
         transcripts: &[TranscriptSegment],
         folder_path: Option<String>,
+        obsidian_vault_segment: Option<String>,
     ) -> Result<String, SqlxError> {
         let meeting_id = format!("meeting-{}", Uuid::new_v4());
 
@@ -24,14 +25,19 @@ impl TranscriptsRepository {
         let now = Utc::now();
 
         // 1. Create the new meeting
+        let segment = obsidian_vault_segment
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
         let result = sqlx::query(
-            "INSERT INTO meetings (id, title, created_at, updated_at, folder_path) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO meetings (id, title, created_at, updated_at, folder_path, obsidian_vault_segment) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&meeting_id)
         .bind(meeting_title)
         .bind(now)
         .bind(now)
         .bind(&folder_path)
+        .bind(&segment)
         .execute(&mut *transaction)
         .await;
 

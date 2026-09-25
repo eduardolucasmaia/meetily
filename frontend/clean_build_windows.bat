@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 
 echo Cleaning npm dependencies...
 rd /s /q node_modules

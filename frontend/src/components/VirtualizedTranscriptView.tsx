@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RecordingStatusBar } from "./RecordingStatusBar";
 import { motion, AnimatePresence } from "framer-motion";
 import { TranscriptSegmentData } from "@/types";
+import { IntervieweeFolderSelect } from "@/components/IntervieweeFolderSelect";
 
 export interface VirtualizedTranscriptViewProps {
     /** Transcript segments to display */
@@ -27,6 +28,8 @@ export interface VirtualizedTranscriptViewProps {
     showConfidence?: boolean;
     /** Completely disable auto-scroll behavior (for meeting details page) */
     disableAutoScroll?: boolean;
+    /** Show interviewee folder dropdown in empty state (Home + Obsidian beta) */
+    showIntervieweeFolderSelect?: boolean;
 
     // Pagination props (infinite scroll)
     hasMore?: boolean;
@@ -119,6 +122,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
     enableStreaming = false,
     showConfidence = true,
     disableAutoScroll = false,
+    showIntervieweeFolderSelect = false,
     hasMore = false,
     isLoadingMore = false,
     totalCount = 0,
@@ -259,6 +263,11 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                         <>
                             <p className="text-lg font-semibold">Welcome to meetily!</p>
                             <p className="text-xs mt-1">Start recording to see live transcription</p>
+                            {showIntervieweeFolderSelect && (
+                                <div className="mt-6 px-4">
+                                    <IntervieweeFolderSelect />
+                                </div>
+                            )}
                         </>
                     )}
                 </motion.div>

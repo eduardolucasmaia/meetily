@@ -33,16 +33,24 @@ function detectGPU() {
 
   // Windows/Linux: Check for GPUs
   if (platform === 'win32' || platform === 'linux') {
-    // Check for NVIDIA GPU
+    // Check for NVIDIA GPU — require a working nvcc (CUDA_PATH alone is not enough on Windows)
     if (commandExists('nvidia-smi')) {
-      const cudaPath = process.env.CUDA_PATH;
-      if (cudaPath || commandExists('nvcc')) {
-        console.log('🟢 NVIDIA GPU detected with CUDA - using CUDA acceleration');
-        return 'cuda';
+      if (commandExists('nvcc')) {
+        try {
+          execSync('nvcc --version', { stdio: 'ignore' });
+          console.log('🟢 NVIDIA GPU with working CUDA toolkit - using CUDA acceleration');
+          return 'cuda';
+        } catch {
+          console.log('⚠️  nvcc found but failed to run - falling back to CPU');
+        }
+      } else if (process.env.CUDA_PATH) {
+        console.log(
+          '⚠️  CUDA_PATH is set but nvcc is not on PATH - falling back to CPU (use tauri:dev:cpu or fix CUDA install)'
+        );
       } else {
-        console.log('⚠️  NVIDIA GPU detected but CUDA not installed - falling back to CPU');
-        return null;
+        console.log('⚠️  NVIDIA GPU detected but CUDA toolkit not installed - falling back to CPU');
       }
+      return null;
     }
 
     // Check for AMD GPU (Linux only)

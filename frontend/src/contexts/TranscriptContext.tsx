@@ -109,6 +109,11 @@ export function TranscriptProvider({ children }: { children: ReactNode }) {
             const effectiveTitle = meetingName || `Meeting ${new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-')}`;
 
             // Initialize meeting metadata in IndexedDB
+            const obsidianVaultSegment =
+              typeof sessionStorage !== 'undefined'
+                ? sessionStorage.getItem('recording_obsidian_vault_segment')?.trim() || undefined
+                : undefined;
+
             await indexedDBService.saveMeetingMetadata({
               meetingId,
               title: effectiveTitle,
@@ -116,7 +121,8 @@ export function TranscriptProvider({ children }: { children: ReactNode }) {
               lastUpdated: Date.now(),
               transcriptCount: 0,
               savedToSQLite: false,
-              folderPath: undefined // Will update shortly
+              folderPath: undefined, // Will update shortly
+              obsidianVaultSegment: obsidianVaultSegment || undefined,
             });
 
             // Synchronize meeting title to state (fixes tray stop title issue)

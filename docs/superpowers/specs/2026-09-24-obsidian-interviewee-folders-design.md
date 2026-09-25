@@ -1,7 +1,7 @@
 # Pastas por entrevistado no export Obsidian
 
 **Data:** 2026-09-24  
-**Status:** Aprovado (design) — aguardando plano de implementação  
+**Status:** Implementado (v1)  
 **Escopo:** Medium/Large — frontend + migration SQLite + fluxo de gravação/export
 
 ## Contexto

@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { useConfig } from '@/contexts/ConfigContext';
 import { loadObsidianExportSettings } from '@/lib/obsidian-export-settings';
+import { buildEffectiveObsidianVaultPath } from '@/lib/obsidian-vault-path';
 import {
   getObsidianExportRecord,
   saveObsidianExportRecord,
@@ -19,9 +20,14 @@ export type ObsidianExportSource = 'manual' | 'auto';
 interface UseObsidianExportProps {
   meetingId: string;
   hasTranscripts: boolean;
+  obsidianVaultSegment?: string | null;
 }
 
-export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExportProps) {
+export function useObsidianExport({
+  meetingId,
+  hasTranscripts,
+  obsidianVaultSegment,
+}: UseObsidianExportProps) {
   const { betaFeatures } = useConfig();
   const [isExporting, setIsExporting] = useState(false);
   const [isExported, setIsExported] = useState(false);
@@ -70,9 +76,14 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
         source === 'auto' ? 'export_to_obsidian_auto' : 'export_to_obsidian';
       await Analytics.trackButtonClick(analyticsEvent, 'meeting_details');
 
+      const effectiveVault = buildEffectiveObsidianVaultPath(
+        settings.vaultPath.trim(),
+        obsidianVaultSegment
+      );
+
       const result = await invoke<ObsidianExportResult>('export_meeting_to_obsidian_command', {
         meetingId,
-        vaultPath: settings.vaultPath.trim(),
+        vaultPath: effectiveVault,
         userPrompt: settings.prompt,
       });
 
@@ -119,7 +130,7 @@ export function useObsidianExport({ meetingId, hasTranscripts }: UseObsidianExpo
     } finally {
       setIsExporting(false);
     }
-  }, [betaFeatures.obsidianExport, hasTranscripts, meetingId]);
+  }, [betaFeatures.obsidianExport, hasTranscripts, meetingId, obsidianVaultSegment]);
 
   return {
     isEnabled,

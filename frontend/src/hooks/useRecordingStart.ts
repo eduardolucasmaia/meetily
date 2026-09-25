@@ -12,6 +12,7 @@ import {
   checkTranscriptionModelReady,
   getConfiguredLiveTranscriptionProvider,
 } from '@/hooks/transcriptionModelGate';
+import { snapshotRecordingObsidianVaultSegment } from '@/lib/obsidian-interviewees';
 
 interface UseRecordingStartReturn {
   handleRecordingStart: () => Promise<void>;
@@ -108,6 +109,8 @@ export function useRecordingStart(
       // Set STARTING status before initiating backend recording
       setStatus(RecordingStatus.STARTING, 'Initializing recording...');
 
+      snapshotRecordingObsidianVaultSegment();
+
       // Start the actual backend recording
       console.log('Starting backend recording with meeting:', randomTitle);
       await recordingService.startRecordingWithDevices(
@@ -160,6 +163,8 @@ export function useRecordingStart(
 
             // Set STARTING status before initiating backend recording
             setStatus(RecordingStatus.STARTING, 'Initializing recording...');
+
+            snapshotRecordingObsidianVaultSegment();
 
             console.log('Auto-starting backend recording with meeting:', generatedMeetingTitle);
             const result = await recordingService.startRecordingWithDevices(
@@ -230,6 +235,8 @@ export function useRecordingStart(
 
         // Set STARTING status before initiating backend recording
         setStatus(RecordingStatus.STARTING, 'Initializing recording...');
+
+        snapshotRecordingObsidianVaultSegment();
 
         console.log('Starting backend recording with meeting:', generatedMeetingTitle);
         const result = await recordingService.startRecordingWithDevices(

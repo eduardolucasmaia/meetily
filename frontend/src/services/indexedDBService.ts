@@ -13,6 +13,7 @@ export interface MeetingMetadata {
   transcriptCount: number;    // Number of transcript segments
   savedToSQLite: boolean;     // Flag: saved to backend DB
   folderPath?: string;        // Path to recording folder
+  obsidianVaultSegment?: string;
 }
 
 export interface StoredTranscript {
